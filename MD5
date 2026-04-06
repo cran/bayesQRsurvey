@@ -1,4 +1,4 @@
-d1958e061c86f0eec2aa789ee3ade39e *DESCRIPTION
+c18331f6a569c6542d5c5926f80981a6 *DESCRIPTION
 53fa09a7f1c5ca759d466c5334f3709f *LICENSE
 a81a33e7c21bdb3a1a98a2dbbaeec82c *NAMESPACE
 cc223a59e731e74ef2c34c6b1ff561f0 *NEWS.md
@@ -7,10 +7,10 @@ a0c11d0c5f179b6a0f93b83fe9052c52 *R/RcppExports.R
 149ab8578fddc9c29c52a66e76519729 *R/bqr.svy.R
 73f3c70e075083a7591a1543240e58d5 *R/imports.R
 854c5fb492bf5b740d4c27dac2746c12 *R/mo.bqr.svy.R
-98bd6ace0af565a4739408b2f13a9b92 *R/plot_quantile.R
-8e34bd3f035c9bb6d44b1cf94bd6664c *R/plot_quantile_region.R
+78ef317f69ea1a1c4a67596e7e369a7a *R/plot_quantile.R
+0c8d0f69c613278ef54660f3d80ab3cf *R/plot_quantile_region.R
 7a882870e57a6663cbc749718fff5147 *R/priors.R
-a09350f778ee3a2670ff0d9a579a0eba *R/summary_bqr_svy.R
+3be6c4d06a758268e7226a3983bd9282 *R/summary_bqr_svy.R
 76e123f5dcc8dee07678412adc0a2a84 *build/partial.rdb
 00f8e448bcac3c71ae81ce1ac7ce3fd2 *data/Anthro.rda
 82457d8ee0aa6d27d1782a47a7e1b656 *inst/include/bayesQRsurvey.h
@@ -19,11 +19,11 @@ a09350f778ee3a2670ff0d9a579a0eba *R/summary_bqr_svy.R
 3e3912728280d6dcb709ba3cdc9a21e5 *man/bayesQRsurvey-package.Rd
 06d5db2bdf30a153fe8b571dc55729ab *man/bqr.svy.Rd
 01b55cd47e9226ba397b17d26bae2c3e *man/mo.bqr.svy.Rd
-42a3c742c5bd76c9c65d242232cbc7be *man/plot.bqr.svy.Rd
+b379c9ca3d124350c04295ae8b8901a7 *man/plot.bqr.svy.Rd
 1cfae108647362f86c659d8a61855cbf *man/plotQuantileRegion.Rd
 90f8eea252f0f0bea585a2dc7410e14a *man/print.bayesQRsurvey.Rd
 02406356ba4ee937704a1e10c95fa61c *man/prior.Rd
-10fef1cbdbd6a4e3aee86df056f0aa1c *man/summary.bayesQRsurvey.Rd
+4d13d9031fcb5d138f2268e4acf82c3c *man/summary.bayesQRsurvey.Rd
 ceeafe20f8b001d1a62732b8a098cd0c *src/EM_BWQR_AL_MO.cpp
 af4b8c2546949870d0e77b6a0f170c57 *src/MCMC_BWQR_AL.cpp
 0991f6be5b55f7d4766d9e7e4c646ec4 *src/MCMC_BWQR_AP.cpp
@@ -36,6 +36,6 @@ cafe01fab1f6a0803b4bcdc11f9791de *src/MCMC_BWQR_SL.cpp
 c410dc1c4d000f110aff134ec738591b *tests/testthat.R
 48598f52f31a45417784ae58ecaa15f1 *tests/testthat/test-bqr-svy.R
 7310380536418c26cc40c0dba44f81b1 *tests/testthat/test-mo-bqr-svy.R
-36706a90a9eb36d94379620ec387500d *tests/testthat/test-plotting.R
+fa353b1611f83eafb63f8e3d6fbf8487 *tests/testthat/test-plotting.R
 627b3a896bd7b73e2fb13ae57ca51f22 *tests/testthat/test-prior.R
 b990610ae568071fc180027b4b85700c *tests/testthat/test-summary-methods.R

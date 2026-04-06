@@ -1,7 +1,7 @@
 Package: bayesQRsurvey
 Title: Bayesian Quantile Regression Models for Complex Survey Data
         Analysis
-Version: 0.2.1
+Version: 0.2.2
 Authors@R: 
     c(
         person("Tomás", "Rodríguez Taborda", email = "torodriguezt@unal.edu.co", role = c("aut", "cre")),
@@ -29,7 +29,7 @@ SystemRequirements: BLAS, LAPACK
 URL: https://github.com/torodriguezt/bayesQRsurvey
 BugReports: https://github.com/torodriguezt/bayesQRsurvey/issues
 NeedsCompilation: yes
-Packaged: 2026-04-01 21:47:15 UTC; torodriguezt
+Packaged: 2026-04-06 07:48:36 UTC; torodriguezt
 Author: Tomás Rodríguez Taborda [aut, cre],
   Johnatan Cardona Jiménez [aut],
   Marcus L. Nascimento [aut],
@@ -37,4 +37,4 @@ Author: Tomás Rodríguez Taborda [aut, cre],
 Maintainer: Tomás Rodríguez Taborda <torodriguezt@unal.edu.co>
 Depends: R (>= 3.5.0)
 Repository: CRAN
-Date/Publication: 2026-04-03 02:20:02 UTC
+Date/Publication: 2026-04-06 19:00:15 UTC
