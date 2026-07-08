@@ -3,8 +3,8 @@
 #include <RcppArmadillo.h>
 #include <cmath>
 #include <algorithm>
-#include <R_ext/Utils.h>   // R_CheckUserInterrupt
-#include <R_ext/Print.h>   // Rprintf, R_FlushConsole
+#include <R_ext/Utils.h>
+#include <R_ext/Print.h>
 
 using namespace Rcpp;
 using namespace arma;
@@ -17,7 +17,6 @@ inline double rinvgauss(double mu, double lambda) {
   const double u = R::runif(0.0, 1.0);
   return (u <= mu / (mu + x1)) ? x1 : (mu * mu / x1);
 }
-
 
 static arma::vec draw_beta(
     const arma::mat& X,
@@ -47,7 +46,6 @@ static arma::vec draw_beta(
     ridge = 1e-6;
   }
 
-  // prior term
   arma::vec rhs = B_inv * b_mean + X.t() * (wv % (y - theta * v)) / (delta2 * sigma_eff);
   arma::vec mu = Sigma * rhs;
 
@@ -63,7 +61,6 @@ static arma::vec draw_beta(
 
   return mu + L * arma::randn<arma::vec>(X.n_cols);
 }
-
 
 inline double draw_sigma(
     const arma::mat& X,
@@ -81,10 +78,8 @@ inline double draw_sigma(
   arma::vec resid = y - X * beta - theta * v;
   const double quad = arma::dot((w % resid) / v, resid) / (2.0 * tau2);
   const double beta1 = C0 + arma::sum(w % v) + quad;
-  // R::rgamma(shape, scale); scale = 1/rate
   return 1.0 / R::rgamma(alpha1, 1.0 / beta1);
 }
-
 
 static void update_v(
     arma::vec& v,
@@ -101,11 +96,12 @@ static void update_v(
 
   for (int i = 0; i < N; ++i) {
     const double resid = y[i] - arma::dot(X.row(i), beta);
-    const double chi = w[i] * resid * resid / (delta2 * sigma_eff);
+    const double chi = std::max(w[i] * resid * resid / (delta2 * sigma_eff), 1e-12);
     const double psi = w[i] * (2.0 / sigma_eff + theta * theta / (delta2 * sigma_eff));
-    const double mu = std::sqrt(chi / psi);
-    const double lambda = std::sqrt(chi * psi);
-    v[i] = std::max(rinvgauss(mu, lambda), 1e-8);
+    const double mu_y     = std::sqrt(psi / chi);
+    const double lambda_y = psi;
+    const double y_draw   = rinvgauss(mu_y, lambda_y);
+    v[i] = std::max(1.0 / y_draw, 1e-8);
   }
 }
 

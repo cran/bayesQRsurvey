@@ -81,39 +81,56 @@ summary.bqr.svy <- function(object, probs = c(0.025, 0.975), digits = 3, ...) {
     runtime     = object$runtime  %||% NA_real_
   )
 
-  ic_by_name <- function(D, vars, probs) {
-    lower <- upper <- rep(NA_real_, length(vars))
-    cn <- colnames(D)
-    for (i in seq_along(vars)) {
-      j <- match(vars[i], cn)
-      if (!is.na(j)) {
-        vcol <- D[, j]
-        lower[i] <- stats::quantile(vcol, probs = probs[1], na.rm = TRUE)
-        upper[i] <- stats::quantile(vcol, probs = probs[2], na.rm = TRUE)
-      }
-    }
-    list(lower = lower, upper = upper)
+  get_diag <- function(tau_label) {
+    d <- object$diagnosis
+    if (is.null(d)) return(NULL)
+    if (is.data.frame(d)) return(d)
+    if (is.list(d) && !is.null(tau_label) && !is.null(d[[tau_label]])) return(d[[tau_label]])
+    NULL
   }
 
-  make_block <- function(D, tau) {
+  make_block <- function(D, tau, tau_label) {
     D <- if (is.data.frame(D)) data.matrix(D) else as.matrix(D)
     storage.mode(D) <- "numeric"
     if (!nrow(D) || !ncol(D)) stop("Empty draws matrix.", call. = FALSE)
 
-    stats <- summarise_draws_custom(D, probs = probs)
+    cn <- colnames(D)
+    if (is.null(cn)) {
+      cn <- paste0("V", seq_len(ncol(D)))
+      colnames(D) <- cn
+    }
 
-    coef_idx   <- stats$variable != "sigma"
-    coef_stats <- stats[coef_idx, , drop = FALSE]
+    if (isTRUE(object$estimate_sigma)) {
+      keep_idx <- seq_len(ncol(D))
+    } else {
+      keep_idx <- which(cn != "sigma")
+    }
+    vars <- cn[keep_idx]
 
-    vars <- coef_stats$variable
-    ic   <- ic_by_name(D, vars, probs)
-    coef_stats$lower_ci <- ic$lower
-    coef_stats$upper_ci <- ic$upper
+    means    <- colMeans(D[, keep_idx, drop = FALSE], na.rm = TRUE)
+    lower_ci <- apply(D[, keep_idx, drop = FALSE], 2,
+                      stats::quantile, probs = probs[1], na.rm = TRUE)
+    upper_ci <- apply(D[, keep_idx, drop = FALSE], 2,
+                      stats::quantile, probs = probs[2], na.rm = TRUE)
+
+    coef_summary <- data.frame(
+      variable = vars,
+      mean     = unname(means),
+      lower_ci = unname(lower_ci),
+      upper_ci = unname(upper_ci),
+      stringsAsFactors = FALSE,
+      check.names      = FALSE
+    )
+
+    diag_block <- get_diag(tau_label)
+    if (!is.null(diag_block)) {
+      diag_block <- diag_block[diag_block$variable %in% vars, , drop = FALSE]
+    }
 
     list(
       tau          = tau,
-      coef_summary = coef_stats,
-      full_summary = stats,
+      coef_summary = coef_summary,
+      diagnosis    = diag_block,
       n_draws      = nrow(D),
       meta         = meta,
       probs        = probs,
@@ -121,12 +138,13 @@ summary.bqr.svy <- function(object, probs = c(0.025, 0.975), digits = 3, ...) {
     )
   }
 
+  tau_labels <- paste0("tau=", formatC(object$quantile, format = "f", digits = 3))
   if (is.list(object$draws)) {
-    per_tau <- Map(make_block, object$draws, object$quantile)
-    names(per_tau) <- paste0("tau=", formatC(object$quantile, format = "f", digits = 3))
+    per_tau <- Map(make_block, object$draws, object$quantile, tau_labels)
+    names(per_tau) <- tau_labels
   } else {
-    per_tau <- list(make_block(object$draws, object$quantile))
-    names(per_tau) <- paste0("tau=", formatC(object$quantile, format = "f", digits = 3))
+    per_tau <- list(make_block(object$draws, object$quantile, tau_labels[1]))
+    names(per_tau) <- tau_labels
   }
 
   res <- list(
@@ -231,7 +249,7 @@ print.summary.bqr.svy <- function(x, ...) {
         " | Thin: ", blk$meta$thin, "\n\n", sep = "")
 
     cs <- blk$coef_summary
-    show_cols <- c("variable","mean","sd","rhat","ess_bulk","ess_tail","lower_ci","upper_ci")
+    show_cols <- c("variable", "mean", "lower_ci", "upper_ci")
     show_cols <- intersect(show_cols, colnames(cs))
     if (!length(show_cols)) {
       print(cs)
@@ -340,7 +358,11 @@ print.summary.mo.bqr.svy <- function(x, max_dir = 8, ...) {
   if (inherits(s, "summary.bqr.svy")) {
     taus <- vapply(s$per_tau, `[[`, numeric(1), "tau")
     idx  <- which.min(abs(taus - target_tau))
-    df   <- s$per_tau[[idx]]$coef_summary
+    blk  <- s$per_tau[[idx]]
+    df   <- blk$coef_summary
+    if (!is.null(blk$diagnosis)) {
+      df <- merge(df, blk$diagnosis, by = "variable", all.x = TRUE, sort = FALSE)
+    }
   } else if (inherits(s, "summary.mo.bqr.svy")) {
     blocks <- s$blocks
     make_df <- function(b) {
@@ -467,52 +489,34 @@ print.bqr.svy <- function(x, digits = 3, ...) {
   cat("Formula  :", deparse(x$formula), "\n")
   if (!is.null(x$runtime)) cat("Runtime  :", round(x$runtime, 3), "sec\n")
 
-  cat("\nCoefficients (posterior means):\n")
-  print(round(x$beta, digits))
-
-  # ---- Scale (sigma) only for ALD ----
-  if (identical(x$method, "ald")) {
-    cat("\nScale (sigma):\n")
-
-    # 1) Determinar si se estimó sigma (flag del objeto)
-    est_flag <- isTRUE(x$estimate_sigma)
-
-    # 2) Etiquetas de tau
-    tau_labs <- paste0("tau=", formatC(x$quantile, digits = 3, format = "f"))
-
-    # 3) Extraer un punto (media posterior) de sigma por cuantil si hay draws
-    make_point <- function(m) {
-      if (is.matrix(m) && "sigma" %in% colnames(m)) {
-        mean(m[, "sigma"], na.rm = TRUE)
-      } else {
-        NA_real_
-      }
+  # Build coefficient display, appending sigma row when estimated
+  beta_display <- x$beta
+  sigma_estimated <- identical(x$method, "ald") && isTRUE(x$estimate_sigma)
+  if (sigma_estimated) {
+    sigma_mean <- function(m) {
+      if (is.matrix(m) && "sigma" %in% colnames(m)) mean(m[, "sigma"], na.rm = TRUE)
+      else NA_real_
     }
-
-    # Construir vector de sigmas por tau (o NA si no disponible)
-    sig_vec <- rep(NA_real_, length(x$quantile))
-    if (is.matrix(x$draws) && length(x$quantile) == 1) {
-      sig_vec[1] <- make_point(x$draws)
-    } else if (is.list(x$draws) && length(x$draws) == length(x$quantile)) {
-      sig_vec <- vapply(x$draws, make_point, numeric(1))
-    }
-
-    # 4) Imprimir según fijo/estimado
-    if (isFALSE(est_flag)) {
-      cat("  (sigma fixed at 1 by default)\n")
-      for (i in seq_along(tau_labs)) {
-        cat(" ", tau_labs[i], ": 1.000 (fixed)\n", sep = "")
-      }
+    sig_vec <- if (is.matrix(x$draws) && length(x$quantile) == 1L) {
+      sigma_mean(x$draws)
+    } else if (is.list(x$draws)) {
+      vapply(x$draws, sigma_mean, numeric(1))
     } else {
-      for (i in seq_along(tau_labs)) {
-        val <- sig_vec[i]
-        if (is.na(val)) {
-          cat(" ", tau_labs[i], ": not available\n", sep = "")
-        } else {
-          cat(" ", tau_labs[i], ": ", formatC(val, format = "f", digits = digits), "\n", sep = "")
-        }
-      }
+      NA_real_
     }
+    if (is.matrix(beta_display)) {
+      sigma_row    <- matrix(sig_vec, nrow = 1, dimnames = list("sigma", colnames(beta_display)))
+      beta_display <- rbind(beta_display, sigma_row)
+    } else {
+      beta_display <- c(beta_display, sigma = sig_vec)
+    }
+  }
+
+  cat("\nCoefficients (posterior means):\n")
+  print(round(beta_display, digits))
+
+  if (identical(x$method, "ald") && !sigma_estimated) {
+    cat("\n(sigma fixed at 1)\n")
   }
 
   # ---- Acceptance rate ----
